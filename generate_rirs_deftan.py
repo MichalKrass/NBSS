@@ -10,11 +10,31 @@ import random
 import numpy as np
 
 import pyroomacoustics as pra
-# import utils
 import scipy.io.wavfile
 
 
-PROCESSES = multiprocessing.cpu_count()
+os.environ["OMP_NUM_THREADS"] = "1"
+os.environ["MKL_NUM_THREADS"] = "1"
+os.environ["OPENBLAS_NUM_THREADS"] = "1"
+
+#PROCESSES = multiprocessing.cpu_count()
+PROCESSES = 1
+
+def str2bool(value):
+    if isinstance(value, bool):
+        return value
+    value = str(value).strip().lower()
+    if value in ('yes', 'true', 't', '1', 'y'):
+        return True
+    if value in ('no', 'false', 'f', '0', 'n'):
+        return False
+    raise ValueError(f'Cannot parse boolean value: {value}')
+
+
+def get_dir(cfg, key, default):
+    path = os.path.expanduser(cfg.get(key, default))
+    os.makedirs(path, exist_ok=True)
+    return path
 
 
 def gen_rirs(params, filenum):
@@ -45,7 +65,7 @@ def gen_rirs(params, filenum):
         while True:
             source_location = params['room_offset_inside'] + np.random.rand(3) * (room_geometry - params['room_offset_inside'] * 2)
             src_dist = np.sqrt(np.sum(np.power(source_location - array_center_location, 2)))
-
+            
             noise_location = params['room_offset_inside'] + np.random.rand(3) * (room_geometry - params['room_offset_inside'] * 2)
             nse_dist = np.sqrt(np.sum(np.power(noise_location - array_center_location, 2)))
             if params['array_source_distance_min'] < src_dist < params['array_source_distance_max']:
@@ -55,20 +75,20 @@ def gen_rirs(params, filenum):
                 assert 0, f"Speech source locating failed."
 
         # Build shoebox room
-        # print("Building a shoebox room...")
+        print("Building a shoebox room...")
         # Set absorption coefficients
         e_absorption, _ = pra.inverse_sabine(rt60=rt60, room_dim=room_geometry)
         # reverberant speech
         room1 = pra.ShoeBox(room_geometry, fs=params['fs'], max_order=6, ray_tracing=True, materials=pra.Material(e_absorption))
-        room1.set_ray_tracing()
+        #room1.set_ray_tracing()
         # direct speech
         room2 = pra.ShoeBox(room_geometry, fs=params['fs'], max_order=0)
         # reverberant noise
         room3 = pra.ShoeBox(room_geometry, fs=params['fs'], max_order=6, ray_tracing=True, materials=pra.Material(e_absorption))
-        room3.set_ray_tracing()
+        #room3.set_ray_tracing()
 
         # Add microphone array
-        # print("Adding microphone array...")
+        print("Adding microphone array...")
         # circular array
         mics = pra.beamforming.circular_microphone_array_xyplane(center=array_center_location, M=params['microphone_num'],
                                                                  phi0=mic_angle, radius=params['microphone_radius'],
@@ -82,7 +102,7 @@ def gen_rirs(params, filenum):
         room3.add(mics)
 
         # Add a speech source location
-        # print("Adding a speech source location...")
+        print("Adding a speech source location...")
         # reverberant speech
         room1.add_source(position=source_location)
         # direct speech
@@ -91,12 +111,15 @@ def gen_rirs(params, filenum):
         room3.add_source(position=noise_location)
 
         # Compute RIRs
-        # print("Computing RIRs...")
+        print("Computing RIRs...")
         # reverberant speech
+        print("reverberant speech")
         room1.compute_rir()
         # direct speech
+        print("direct speech")
         room2.compute_rir()
         # reverberant noise
+        print("reverberant noise")
         room3.compute_rir()
 
         # filename
@@ -116,6 +139,7 @@ def gen_rirs(params, filenum):
         rirs3 = room3.rir
 
         # To make np.array & zero padding
+        print("Padding rir1...")
         rir_len_ls1 = []
         for mic_idx in range(len(rirs1)):
             for src_idx in range(len(rirs1[mic_idx])):
@@ -127,12 +151,12 @@ def gen_rirs(params, filenum):
         rirs1 = np.array(rirs1)
         if not np.all(np.any(rirs1, axis=-1)):
             continue
-
+        print("Padding rir2...")
         # To make np.array & zero padding
         rir_len_ls2 = []
-        for mic_idx in range(len(rirs1)):
-            for src_idx in range(len(rirs1[mic_idx])):
-                rir_len_ls2.append(len(rirs1[mic_idx][src_idx]))
+        for mic_idx in range(len(rirs2)):
+            for src_idx in range(len(rir1[mic_idx])):
+                rir_len_ls2.append(len(rirs2[mic_idx][src_idx]))
         rir_len_max2 = max(rir_len_ls2)
         for mic_idx in range(len(rirs2)):
             for src_idx in range(len(rirs2[mic_idx])):
@@ -140,23 +164,30 @@ def gen_rirs(params, filenum):
         rirs2 = np.array(rirs2)
         if not np.all(np.any(rirs2, axis=-1)):
             continue
-
+        print("Padding rir3...")
         # To make np.array & zero padding
         rir_len_ls3 = []
-        for mic_idx in range(len(rirs1)):
-            for src_idx in range(len(rirs1[mic_idx])):
-                rir_len_ls3.append(len(rirs1[mic_idx][src_idx]))
-        rir_len_max3 = max(rir_len_ls3)
         for mic_idx in range(len(rirs3)):
             for src_idx in range(len(rirs3[mic_idx])):
+                rir_len_ls3.append(len(rirs3[mic_idx][src_idx]))
+        rir_len_max3 = max(rir_len_ls3)
+        print(rir_len_ls3)
+        for mic_idx in range(len(rirs3)):
+            for src_idx in range(len(rirs3[mic_idx])):
+                print(rir_len_max3 - len(rirs3[mic_idx][src_idx]))
                 rirs3[mic_idx][src_idx] = np.pad(rirs3[mic_idx][src_idx], (0, rir_len_max3 - len(rirs3[mic_idx][src_idx])), 'constant')
         rirs3 = np.array(rirs3)
         if not np.all(np.any(rirs3, axis=-1)):
             continue
-
+        
+        print("Saving to:")
+        print(save_dir1)
+        print(save_dir2)
+        print(save_dir3)
         scipy.io.wavfile.write(save_dir1, params['fs'], np.transpose(np.squeeze(rirs1, axis=1)))
         scipy.io.wavfile.write(save_dir2, params['fs'], np.transpose(np.squeeze(rirs2, axis=1)))
         scipy.io.wavfile.write(save_dir3, params['fs'], np.transpose(np.squeeze(rirs3, axis=1)))
+        break
 
         # try:
         #     np.save(save_dir1, rirs1)
@@ -169,16 +200,6 @@ def gen_rirs(params, filenum):
 
     return room_geometry
 
-def str2bool(v):
-    if isinstance(v, bool):
-        return v
-    return str(v).lower() in ("yes", "true", "t", "1", "y")
-
-def get_dir(cfg, key, default):
-    path = cfg.get(key, default)
-    path = os.path.expanduser(path)
-    os.makedirs(path, exist_ok=True)
-    return path
 
 def main_body():
     '''Main body of this file'''
@@ -187,7 +208,7 @@ def main_body():
     # Configurations: read noisyspeech_synthesizer.cfg and gather inputs
     parser.add_argument('--cfg', default='pyroom_rir.cfg',
                         help='Read pyroom_rir.cfg for all the details')
-    parser.add_argument('--cfg_str', type=str, default='pyroom_rir')
+    parser.add_argument('--cfg_str', type=str, default='pyroom_rirs')
     args = parser.parse_args()
 
     params = dict()
@@ -229,8 +250,6 @@ def main_body():
         params['num_files'] = int((params['total_hours']*60*60)/params['audio_length'])
 
     print('Number of files to be synthesized:', params['num_files'])
-    # params['is_test_set'] = utils.str2bool(cfg['is_test_set'])
-    # params['rir_proc_dir'] = utils.get_dir(cfg, 'rir_destination', 'pyroom_RIRs')
     params['is_test_set'] = str2bool(cfg['is_test_set'])
     params['rir_proc_dir'] = get_dir(cfg, 'rir_destination', 'pyroom_RIRs')
 

@@ -8,15 +8,15 @@
 
 
 import math
-from typing import Iterator, Optional
+from typing import Iterator, Optional, Tuple
 
 import torch
 from pytorch_lightning.utilities.rank_zero import rank_zero_warn
 from torch.utils.data import Dataset
-from torch.utils.data.distributed import DistributedSampler, T_co
+from torch.utils.data.distributed import DistributedSampler
 
 
-class MyDistributedSampler(DistributedSampler[T_co]):
+class MyDistributedSampler(DistributedSampler):
     r"""Sampler for single GPU and multi GPU (or Distributed) cases. Change int index to a tuple (index, random seed for this index).
     This sampler is used to enhance the reproducibility of datasets by generating random seed for each item at each epoch.
     """
@@ -38,7 +38,7 @@ class MyDistributedSampler(DistributedSampler[T_co]):
             super().__init__(dataset, 1, 0, shuffle, seed, drop_last)
         self.last_epoch = -1
 
-    def __iter__(self) -> Iterator[T_co]:
+    def __iter__(self) -> Iterator[Tuple[int, int]]:
         if self.shuffle:
             # deterministically shuffle based on epoch and seed
             g = torch.Generator()

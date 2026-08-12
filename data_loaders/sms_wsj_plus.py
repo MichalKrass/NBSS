@@ -176,6 +176,9 @@ class SmsWsjPlusDataset(Dataset):
         cleans = pad_or_cut(wavs=cleans, lens=lens, rng=rng)
 
         # step 5: convolve rir and clean speech, then place them at right place to satisfy the given overlap types
+        # rvbts   = (speaker0_reverb, speaker1_reverb)
+        # targets = (speaker0_target, speaker1_target)
+        # 混合两个spk语音做overlap
         rvbts, targets = zip(*[convolve(wav=wav, rir=rir_spk, rir_target=rir_spk_t, ref_channel=0, align=True) for (wav, rir_spk, rir_spk_t) in zip(cleans, rir, rir_target)])
         rvbts, targets = overlap2(rvbts=rvbts, targets=targets, ovlp_type=ovlp_type, mix_frames=mix_frames, rng=rng)
 
@@ -255,8 +258,8 @@ class SmsWsjPlusDataModule(LightningDataModule):
 
     def __init__(
         self,
-        sms_wsj_dir: str = '~/datasets/sms_wsj',  # a dir contains [early, noise, observation, rirs, speech_source, tail, wsj_8k_zeromean]
-        rir_dir: str = '~/datasets/SMS_WSJ_Plus_rirs',  # containing train, validation, and test subdirs
+        sms_wsj_dir: str = './datasets/sms_wsj',  # a dir contains [early, noise, observation, rirs, speech_source, tail, wsj_8k_zeromean]
+        rir_dir: str = './datasets/SMS_WSJ_Plus_rirs_2',  # containing train, validation, and test subdirs
         target: str = "direct_path",  # e.g. rvbt_image, direct_path
         datasets: Tuple[str, str, str, str] = ['train_si284', 'cv_dev93', 'test_eval92', 'test_eval92'],  # datasets for train/val/test/predict
         audio_time_len: Tuple[Optional[float], Optional[float], Optional[float], Optional[float]] = [4.0, 4.0, None, None],  # audio_time_len (seconds) for train/val/test/predictS

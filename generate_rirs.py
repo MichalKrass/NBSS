@@ -1,6 +1,6 @@
 import os
 
-os.environ["OMP_NUM_THREADS"] = str(1)  # 使用cpu生成rir时，用到了多进程加速，因此不需要这个
+os.environ["OMP_NUM_THREADS"] = str(1) 
 # os.environ["CUDA_VISIBLE_DEVICES"] = str(7)  # choose the gpu to use
 
 import json
@@ -255,9 +255,9 @@ def plot_room_2d(room_sz: Union[List[float], np.ndarray], pos_src: np.ndarray, p
 def circular_array_geometry(radius: float, mic_num: int) -> np.ndarray:
     # 生成圆阵的拓扑（原点为中心），后期可以通过旋转、改变中心的位置来实现阵列位置的改变
     pos_rcv = np.empty((mic_num, 3))
-    v1 = np.array([1, 0, 0])  # 第一个麦克风的位置（要求单位向量）
+    v1 = np.array([1, 0, 0])  # 第一个麦克风的位置（要求单位向量�?
     v1 = normalize(v1)  # 单位向量
-    # 将v1绕原点水平旋转angle角度，来生成其他mic的位置
+    # 将v1绕原点水平旋转angle角度，来生成其他mic的位�?
     angles = np.arange(0, 2 * np.pi, 2 * np.pi / mic_num)
     for idx, angle in enumerate(angles):
         x = v1[0] * np.cos(angle) - v1[1] * np.sin(angle)
@@ -269,7 +269,7 @@ def circular_array_geometry(radius: float, mic_num: int) -> np.ndarray:
 
 
 def circular_cm_array_geometry(radius: float, mic_num: int) -> np.ndarray:
-    # 圆形阵列+中心麦克风
+    # 圆形阵列+中心麦克�?
     # circular array with central microphone
     pos_rcv = np.zeros((mic_num, 3))
     pos_rcv_c = circular_array_geometry(radius=radius, mic_num=mic_num - 1)
@@ -322,7 +322,7 @@ def linear_array_geometry(radius: float, mic_num: int) -> np.ndarray:
 
 
 def chime3_array_geometry() -> np.ndarray:
-    # TODO 加入麦克风的朝向向量，以及麦克风的全向/半向
+    # TODO 加入麦克风的朝向向量，以及麦克风的全�?半向
     pos_rcv = np.zeros((6, 3))
     pos_rcv[0, :] = np.array([-0.1, 0.095, 0])
     pos_rcv[1, :] = np.array([0, 0.095, 0])
@@ -351,9 +351,9 @@ def libricss_array_geometry() -> np.ndarray:
 
 
 def rotate(pos_rcv: np.ndarray, x_angle: Optional[float] = None, y_angle: Optional[float] = None, z_angle: Optional[float] = None) -> np.ndarray:
-    # 将以原点为中心的麦克风分别绕X、Y、Z轴旋转给定角度(单位：rad)
+    # 将以原点为中心的麦克风分别绕X、Y、Z轴旋转给定角�?单位：rad)
     def _rotate(pos_rcv: np.ndarray, angle: float, dims: Tuple[int, int]) -> np.ndarray:
-        assert len(set(dims)) == 2, "dims参数应该给两个不同的值"
+        assert len(set(dims)) == 2, 'dims should contain two different axes'
         pos_rcv_new = np.empty_like(pos_rcv)
         pos_rcv_new[:, dims[0]] = pos_rcv[:, dims[0]] * np.cos(angle) - pos_rcv[:, dims[1]] * np.sin(angle)
         pos_rcv_new[:, dims[1]] = pos_rcv[:, dims[0]] * np.sin(angle) + pos_rcv[:, dims[1]] * np.cos(angle)
@@ -396,9 +396,9 @@ def generate_4points_sin_trajectory(
         equal_dist: bool = False,  # neighbouring points have equal distance
         max_ratio: float = 3,  # maximum allowed distantce for not equal case
 ):
-    # 移动声源：
+    # 移动声源�?
     # 1. 从房间的四个区域分别采用一个点
-    # 2. 按照区域将四个点连接起来. 每条连线沿着线方向每10cm采样一个点, 这样仿真超长语音的时候, 刚好可以沿着四个点转圈
+    # 2. 按照区域将四个点连接起来. 每条连线沿着线方向每10cm采样一个点, 这样仿真超长语音的时�? 刚好可以沿着四个点转�?
 
     xr, yr, zr = room_sz
     xa, ya, za = min_src_array_dist
@@ -446,7 +446,7 @@ def generate_4points_sin_trajectory(
             trajs.append(traj_pts)
         else:
             traj_pts = []
-            unit_vec = (src_pos_end - src_pos_ini) / dist_ini_end  # 起点指向终点的单位方向向量
+            unit_vec = (src_pos_end - src_pos_ini) / dist_ini_end  # 起点指向终点的单位方向向�?
             A = np.random.random(3) * np.array([xb, yb, 0])  # Magnitude oscilations with [xb,yb,0]
             w = 2 * np.pi * np.random.randint(1, 4, size=3)  # Between 1 and 2 times 2pi rad oscilations in each axis
             # 沿unit_vec方向移动多长距离, 才使得移动后点与起点的距离接近于desired_dist_pts
@@ -487,7 +487,7 @@ def generate_rir_cfg_list(
     mic_zlim: Tuple[float, float] = (1.0, 1.5),
     spk_zlim: Tuple[float, float] = (1.0, 1.8),
     RT60_lim: Tuple[float, float] = (0.1, 0.6),
-    rir_nums: Tuple[int, int, int] = (40000, 5000, 3000),
+    rir_nums: Tuple[int, int, int] = (40, 5, 3),
     arr_geometry: Union[Literal['circular', 'circular+cm', 'linear', 'chime3', 'libricss'], str, List[str]] = 'circular+cm',
     arr_radius: Optional[Union[Tuple[float, float], List[Tuple[float, float]]]] = (0.1, 0.1),
     arr_rotate_lims: Union[Tuple[Optional[Tuple[float, float]], Optional[Tuple[float, float]], Optional[Tuple[float, float]]], Literal['auto']] = 'auto',
@@ -497,7 +497,7 @@ def generate_rir_cfg_list(
     mic_pos_var: float = 0,
     spk_arr_dist: Union[Tuple[float, float], Literal['auto', 'random']] = 'auto',
     trajectory: Optional[Tuple[str, float]] = None,
-    fs: int = 8000,
+    fs: int = 16000,
     attn_diff: Tuple[Optional[float], Optional[float], Optional[float]] = (15.0, 15.0, 60.0),
     save_to: Union[Literal['auto'], str] = 'auto',
     rir_dir: str = 'dataset/rirs_generated',
@@ -845,6 +845,7 @@ def generate_rir_files(
 
     pars = rir_cfg['rir_pars']
     fs = rir_cfg['args'].item()['fs']
+
     attn_diff = rir_cfg['args'].item()['attn_diff']
     attn_diff_noise = None
     if isinstance(attn_diff, tuple):
@@ -869,7 +870,18 @@ def generate_rir_files(
     if not use_gpu:
         from p_tqdm import p_map
         p_map(
-            partial(__gen__, fs=fs, use_gpu=use_gpu),
+            partial(
+                __gen__,
+                fs=fs,
+                use_gpu=use_gpu,
+                train_rir_num=train_rir_num,
+                val_rir_num=val_rir_num,
+                rir_dir=rir_dir,
+                attn_diff_speech=attn_diff_speech,
+                attn_max=attn_max,
+                attn_diff_noise=attn_diff_noise,
+                split_trajectory=split_trajectory,
+            ),
             pars,
             num_cpus=mp.cpu_count() // 2,
         )
@@ -914,16 +926,17 @@ if __name__ == '__main__':
     # python generate_rirs.py --spk_num=2 --room_size_lims="[[4,10],[4,10],[3,4]]" --mic_zlim="[1.4,1.6]" --spk_zlim="[1.3,1.8]" --RT60_lim=[0.1,1.0] --rir_nums=[20000,2000,2000] --arr_geometry=chime3 --arr_radius=null --mic_num=6 --spk_arr_dist=[0.5,0.5] --arr_room_center_dist=0.5 --attn_diff=[15.0,15.0,40.0] --fs=8000 --save_to=~/datasets/CHiME3_moving_rirs/rir_cfg.npz --rir_dir=~/datasets/CHiME3_moving_rirs --trajectory=['4points+sin',0.05]
     parser = ArgumentParser(description='code for generating RIRs by Changsheng Quan @ Westlake University')
     parser.add_function_arguments(generate_rir_cfg_list)  # add_argument for the function generate_rir_cfg_list
-    parser.add_argument('--use_gpu', type=bool, default=True, help='use gpu or not')
+    parser.add_argument('--use_gpu', type=bool, default=False, help='use gpu or not')
     parser.add_argument('--gpus', type=List[int], default=[0], help='the gpus used for simulation')
     parser.add_argument('--split_trajectory', type=Optional[int], default=None, help='set this parameter to a small value if out-of-memory')
-
+    # parser.add_argument('--fs', type=int, default=8000, help='sample rate')
     args = parser.parse_args()
 
     # get paramters for function `generate_rir_cfg_list`
     sig = inspect.signature(generate_rir_cfg_list)
     args_for_generate_rir_cfg_list = dict()
     for param in sig.parameters.values():
+        print(param.name, getattr(args, param.name))
         args_for_generate_rir_cfg_list[param.name] = getattr(args, param.name)
 
     # generate configuration
